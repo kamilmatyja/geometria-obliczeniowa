@@ -475,7 +475,7 @@
 
             let sortedFace = [...face].sort((a,b) => {
                 if(a.y !== b.y) return b.y - a.y;
-                return a.x - b.x;
+                return b.x - a.x; // Dla równych Y: prawy wierzchołek najpierw (stabilizuje przypadki degeneracyjne)
             });
 
             let top = sortedFace[0];

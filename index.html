@@ -59,6 +59,8 @@
 4, 9
 1, 4</textarea>
         <button onclick="processPolygon()">Analizuj i Generuj</button>
+        <h3 style="margin-top: 20px;">Lista punktow wejsciowych</h3>
+        <p id="inputList" style="background: #ecf0f1; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; margin: 0;"></p>
     </div>
 
     <div class="panel" style="flex: 0.7;">
@@ -127,6 +129,18 @@
         return (v1x * v2y - v1y * v2x);
     }
 
+    // Litera/litery zgodnie z kolejnością wpisu w textarea: 0->A, 1->B, ... 25->Z, 26->AA
+    function getInputLabel(index) {
+        let label = '';
+        let n = index + 1;
+        while (n > 0) {
+            let rem = (n - 1) % 26;
+            label = String.fromCharCode(65 + rem) + label;
+            n = Math.floor((n - 1) / 26);
+        }
+        return label;
+    }
+
     // GŁÓWNA FUNKCJA PRZETWARZAJĄCA
     function processPolygon() {
         let input = document.getElementById('pointsInput').value.trim();
@@ -134,12 +148,16 @@
         let pts = [];
 
         // Parsowanie
-        lines.forEach(line => {
+        lines.forEach((line, lineIndex) => {
             let parts = line.split(',');
             if (parts.length === 2) {
-                pts.push({ x: parseFloat(parts[0].trim()), y: parseFloat(parts[1].trim()) });
+                pts.push({ x: parseFloat(parts[0].trim()), y: parseFloat(parts[1].trim()), sourceIndex: lineIndex });
             }
         });
+
+        document.getElementById('inputList').innerText = pts
+            .map(p => `${getInputLabel(p.sourceIndex)} = (${p.x}, ${p.y})`)
+            .join('\n');
 
         if (pts.length < 3) {
             alert("Wielokąt musi mieć co najmniej 3 wierzchołki!");
@@ -167,7 +185,14 @@
         pts = pts.slice(maxXi).concat(pts.slice(0, maxXi));
 
         let vertices = pts.map((p, index) => {
-            return { id: index + 1, name: `V_${index + 1}`, x: p.x, y: p.y, originalIndex: index };
+            return {
+                id: index + 1,
+                name: `V_${index + 1}`,
+                inputLabel: getInputLabel(p.sourceIndex),
+                x: p.x,
+                y: p.y,
+                originalIndex: index
+            };
         });
 
         let N = vertices.length;
@@ -202,7 +227,7 @@
         tb.innerHTML = '';
         vertices.forEach(v => {
             let tr = document.createElement('tr');
-            tr.innerHTML = `<td><b>${v.name}</b></td><td>(${v.x}, ${v.y})</td><td>${v.type}</td>`;
+            tr.innerHTML = `<td><b>${v.name}</b></td><td>${v.inputLabel} = (${v.x}, ${v.y})</td><td>${v.type}</td>`;
             tb.appendChild(tr);
         });
 
@@ -537,6 +562,39 @@
         ctx.fillStyle = 'rgba(52, 152, 219, 0.1)';
         ctx.fill();
 
+        // Etykiety krawedzi bazowego wielokata: e_i dla odcinka V_i -> V_(i+1)
+        let centerX = vertices.reduce((acc, v) => acc + getCx(v.x), 0) / vertices.length;
+        let centerY = vertices.reduce((acc, v) => acc + getCy(v.y), 0) / vertices.length;
+        ctx.fillStyle = '#34495e';
+        ctx.font = '11px Arial';
+        for (let i = 0; i < vertices.length; i++) {
+            let a = vertices[i];
+            let b = vertices[(i + 1) % vertices.length];
+            let ax = getCx(a.x), ay = getCy(a.y);
+            let bx = getCx(b.x), by = getCy(b.y);
+            let midX = (ax + bx) / 2;
+            let midY = (ay + by) / 2;
+
+            let dx = bx - ax;
+            let dy = by - ay;
+            let len = Math.hypot(dx, dy) || 1;
+            let nx = -dy / len;
+            let ny = dx / len;
+            let offset = 12;
+
+            let c1x = midX + nx * offset;
+            let c1y = midY + ny * offset;
+            let c2x = midX - nx * offset;
+            let c2y = midY - ny * offset;
+
+            let d1 = (c1x - centerX) * (c1x - centerX) + (c1y - centerY) * (c1y - centerY);
+            let d2 = (c2x - centerX) * (c2x - centerX) + (c2y - centerY) * (c2y - centerY);
+            let labelX = d1 > d2 ? c1x : c2x;
+            let labelY = d1 > d2 ? c1y : c2y;
+
+            ctx.fillText(`e_${i + 1}`, labelX + 2, labelY - 2);
+        }
+
         // Rysuj przekątne MakeMonotone
         ctx.beginPath();
         ctx.setLineDash([5, 5]);
@@ -593,10 +651,10 @@
                 ctx.fill();
             }
 
-            // Etykiety V_x
+            // Etykiety: numer V_n + litera z kolejnosci wejscia
             ctx.fillStyle = '#000';
             ctx.font = '12px Arial';
-            ctx.fillText(v.name, cx + 8, cy - 8);
+            ctx.fillText(`${v.name} (${v.inputLabel})`, cx + 8, cy - 8);
         }
     }
 

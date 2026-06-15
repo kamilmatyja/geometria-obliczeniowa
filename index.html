@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>Triangulacja Wielokąta - Algorytmy Geometrii Obliczeniowej</title>
+    <title>Algorytmy Geometrii Obliczeniowej</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; color: #333; margin: 0; padding: 20px; }
         h1, h2, h3 { color: #2c3e50; }
@@ -20,24 +20,22 @@
         .legend { display: flex; justify-content: center; gap: 15px; margin-top: 10px; flex-wrap: wrap; font-size: 13px; }
         .dot { width: 12px; height: 12px; display: inline-block; border-radius: 50%; vertical-align: middle; margin-right: 5px; }
         .sq { border-radius: 0; }
+        .tabs { display: flex; gap: 10px; margin: 16px 0 20px 0; flex-wrap: wrap; }
+        .tab-btn { background: #ecf0f1; color: #2c3e50; border: 1px solid #d0d7de; }
+        .tab-btn.active { background: #3498db; color: #fff; border-color: #3498db; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
     </style>
 </head>
 <body>
 
-<h1>Podział na wielokąty monotoniczne i Triangulacja</h1>
-
-<div class="definitions">
-    <strong>Definicje rodzajów wierzchołków (zgodnie z PDF):</strong><br>
-    Punkt <em>p</em> jest poniżej <em>q</em>, gdy <code>p.y &lt; q.y</code> lub (<code>p.y == q.y</code> i <code>p.x &gt; q.x</code>).<br>
-    Punkt <em>p</em> jest powyżej <em>q</em>, gdy <code>p.y &gt; q.y</code> lub (<code>p.y == q.y</code> i <code>p.x &lt; q.x</code>).<br>
-    <ul>
-        <li><strong>Początkowy (Start):</strong> dwaj sąsiedzi leżą poniżej niego, a kąt wewnętrzny &lt; &pi;.</li>
-        <li><strong>Końcowy (End):</strong> dwaj sąsiedzi leżą powyżej niego, a kąt wewnętrzny &lt; &pi;.</li>
-        <li><strong>Dzielący (Split):</strong> dwaj sąsiedzi leżą poniżej niego, a kąt wewnętrzny &gt; &pi;.</li>
-        <li><strong>Łączący (Merge):</strong> dwaj sąsiedzi leżą powyżej niego, a kąt wewnętrzny &gt; &pi;.</li>
-        <li><strong>Prawidłowy (Regular):</strong> nie jest żadnym z powyższych (jeden sąsiad powyżej, drugi poniżej).</li>
-    </ul>
+<div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('task1', this)">Wielokąty monotoniczne</button>
+    <button class="tab-btn" onclick="switchTab('task2', this)">Mapa trapezowa</button>
+    <button class="tab-btn" onclick="switchTab('task3', this)">Diagram Voronoi</button>
 </div>
+
+<div id="task1" class="tab-content active">
 
 <div class="container">
     <div class="panel" style="flex: 0.3;">
@@ -81,6 +79,13 @@
 <div class="container" style="margin-top: 20px;">
     <div class="panel">
         <h3>Klasyfikacja Wierzchołków</h3>
+        <p style="font-size: 12px; color: #555; margin-top: -6px; line-height: 1.5;">
+            Początkowy (Start): dwaj sąsiedzi leżą poniżej, a kąt wewnętrzny &lt; &pi;.<br>
+            Końcowy (End): dwaj sąsiedzi leżą powyżej, a kąt wewnętrzny &lt; &pi;.<br>
+            Dzielący (Split): dwaj sąsiedzi leżą poniżej, a kąt wewnętrzny &gt; &pi;.<br>
+            Łączący (Merge): dwaj sąsiedzi leżą powyżej, a kąt wewnętrzny &gt; &pi;.<br>
+            Prawidłowy (Regular): nie jest żadnym z powyższych (jeden sąsiad powyżej, drugi poniżej).
+        </p>
         <table>
             <thead>
             <tr>
@@ -93,6 +98,9 @@
         </table>
 
         <h3 style="margin-top: 30px;">Kolejka Priorytetowa Q</h3>
+        <p style="font-size: 12px; color: #555; margin-top: -6px;">
+            Kolejność w Q: <code>y</code> malejąco, a dla równych <code>y</code> - <code>x</code> rosnąco.
+        </p>
         <p style="background: #ecf0f1; padding: 10px; border-radius: 4px; font-family: monospace;" id="queueData"></p>
     </div>
 
@@ -114,7 +122,57 @@
     </div>
 </div>
 
+</div>
+
+<div id="task2" class="tab-content">
+    <div class="container">
+        <div class="panel">
+            <h3>Zadanie 2: Mapa trapezowa i graf struktury przeszukiwań</h3>
+            <p style="font-size: 12px; color: #555; line-height: 1.5;">
+                Napisz graf struktury przeszukiwań.<br>
+                Ustaw porządek wstawiania.<br>
+                Opisz mapę trapezową dla zbioru odcinków dla pewnego porządku wstawiania ich.
+            </p>
+            <p style="background: #ecf0f1; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap;">
+S1={(2,2),(5,1)}
+S2={(2,2),(3,6)}
+S3={(2,2),(7,5)}
+S4={(5,1),(7,5)}
+S5={(3,6),(7,5)}
+S6={(3,6),(9,6)}
+S7={(5,1),(9,6)}
+            </p>
+            <div class="log-box">Miejsce na opis grafu przeszukiwań i kolejne kroki budowy mapy trapezowej...</div>
+        </div>
+    </div>
+</div>
+
+<div id="task3" class="tab-content">
+    <div class="container" style="margin-bottom: 50px;">
+        <div class="panel">
+            <h3>Zadanie 3: Diagram Voronoi</h3>
+            <p style="font-size: 12px; color: #555; line-height: 1.5;">
+                Wyznacz diagram Voronoi dla centrów reprezentowanych przez punkty:
+            </p>
+            <p style="background: #ecf0f1; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap;">
+A=(1,1)
+B=(5,2)
+C=(1,5)
+D=(4,6)
+            </p>
+            <div class="log-box">Miejsce na analizę i wynik diagramu Voronoi...</div>
+        </div>
+    </div>
+</div>
+
 <script>
+    function switchTab(tabId, btn) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        btn.classList.add('active');
+    }
+
     // --- FUNKCJE POMOCNICZE MATEMATYCZNE ---
 
     function isBelow(p, q) {

@@ -377,19 +377,36 @@ S7={(5,1),(9,6)}</textarea>
 </div>
 
 <div id="task3" class="tab-content">
-    <div class="container" style="margin-bottom: 50px;">
+    <div class="container">
+        <div class="panel" style="flex: 0.3;">
+            <h3>Centra (Punkty wejściowe)</h3>
+            <p style="font-size: 12px; color: #555;">
+                Wpisz punkty w formacie <code>X, Y</code> lub <code>Nazwa=(X,Y)</code>.
+            </p>
+            <textarea id="voronoiInput">
+A=(1,1)
+B=(5,2)
+C=(1,5)
+D=(4,6)
+            </textarea>
+            <button onclick="processVoronoi()" style="width: 100%;">Generuj Diagram Voronoi</button>
+        </div>
+
+        <div class="panel" style="flex: 0.7;">
+            <h3>Wykres Diagramu Voronoi</h3>
+            <canvas id="voronoiCanvas" width="600" height="450"></canvas>
+            <div class="legend" style="margin-top: 15px;">
+                <div><span class="dot sq" style="background: #2ecc71;"></span> Centra (Punkty wejściowe)</div>
+                <div><span class="dot sq" style="background: #e74c3c;"></span> Wierzchołki Voronoi</div>
+                <div><span class="dot sq" style="background: transparent; border: 2px solid #2980b9; height:2px; margin-top:5px;"></span> Krawędzie Voronoi</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" style="margin-top: 20px; margin-bottom: 50px;">
         <div class="panel">
-            <h3>Diagram Voronoi</h3>
-            <p style="font-size: 12px; color: #555; line-height: 1.5;">
-                Wyznacz diagram Voronoi dla centrów reprezentowanych przez punkty:
-            </p>
-            <p style="background: #ecf0f1; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap;">
-                A=(1,1)
-                B=(5,2)
-                C=(1,5)
-                D=(4,6)
-            </p>
-            <div class="log-box">Miejsce na analizę i wynik diagramu Voronoi...</div>
+            <h3>Analiza i Obliczenia</h3>
+            <div class="log-box" id="voronoiLog" style="height: 400px;">Log obliczeń symetralnych i wierzchołków pojawi się po wygenerowaniu...</div>
         </div>
     </div>
 </div>

@@ -6,6 +6,7 @@ class Point {
         this.y = y;
         this.name = "";
     }
+
     equals(other) {
         return Math.abs(this.x - other.x) < 1e-9 && Math.abs(this.y - other.y) < 1e-9;
     }
@@ -15,12 +16,15 @@ class Segment {
     constructor(p, q, name) {
         // Zapewniamy, że punkt p jest zawsze na lewo od q
         if (p.x < q.x || (Math.abs(p.x - q.x) < 1e-9 && p.y < q.y)) {
-            this.p = p; this.q = q;
+            this.p = p;
+            this.q = q;
         } else {
-            this.p = q; this.q = p;
+            this.p = q;
+            this.q = p;
         }
         this.name = name;
     }
+
     evaluate(x) {
         if (Math.abs(this.p.x - this.q.x) < 1e-9) return this.p.y;
         return this.p.y + (this.q.y - this.p.y) * (x - this.p.x) / (this.q.x - this.p.x);
@@ -290,10 +294,14 @@ function processTrapezoidalMap() {
     let minY = Math.min(...uniquePoints.map(p => p.y)) - 1;
     let maxY = Math.max(...uniquePoints.map(p => p.y)) + 1;
 
-    let pTL = new Point(minX, maxY); pTL.name="TL";
-    let pTR = new Point(maxX, maxY); pTR.name="TR";
-    let pBL = new Point(minX, minY); pBL.name="BL";
-    let pBR = new Point(maxX, minY); pBR.name="BR";
+    let pTL = new Point(minX, maxY);
+    pTL.name = "TL";
+    let pTR = new Point(maxX, maxY);
+    pTR.name = "TR";
+    let pBL = new Point(minX, minY);
+    pBL.name = "BL";
+    let pBR = new Point(maxX, minY);
+    pBR.name = "BR";
 
     let sTop = new Segment(pTL, pTR, "BB_TOP");
     let sBot = new Segment(pBL, pBR, "BB_BOT");
@@ -305,7 +313,7 @@ function processTrapezoidalMap() {
 
     mathLog.push('Krok 0: Inicjalizacja bounding box i jednego trapezu początkowego T0.\n');
 
-    for(let i = 0; i < segmentsToInsert.length; i++) {
+    for (let i = 0; i < segmentsToInsert.length; i++) {
         let s = segmentsToInsert[i];
         let hit = findIntersectingTrapezoids(s);
         mathLog.push(`Krok ${i + 1}: Wstawiamy ${s.name} = (${s.p.x},${s.p.y}) -> (${s.q.x},${s.q.y}).`);
@@ -326,7 +334,9 @@ function processTrapezoidalMap() {
     });
 
     let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    validTraps.forEach((t, i) => { t.name = letters[i] || ("T" + i); });
+    validTraps.forEach((t, i) => {
+        t.name = letters[i] || ("T" + i);
+    });
 
     mathLog.push(`Wynik: liczba trapezów końcowych = ${validTraps.length}.`);
     mathLog.push('Nazwy trapezów po sortowaniu od lewej (i od góry dla tych samych x): ' + validTraps.map(t => t.name).join(', '));
@@ -346,14 +356,19 @@ function drawMap(minX, maxX, minY, maxY) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     let margin = (maxX - minX) * 0.1;
-    let scaleX = canvas.width / ((maxX - minX) + 2*margin);
-    let scaleY = canvas.height / ((maxY - minY) + 2*margin);
+    let scaleX = canvas.width / ((maxX - minX) + 2 * margin);
+    let scaleY = canvas.height / ((maxY - minY) + 2 * margin);
 
     let viewMinX = minX - margin;
     let viewMinY = minY - margin;
 
-    function sX(x) { return (x - viewMinX) * scaleX; }
-    function sY(y) { return canvas.height - (y - viewMinY) * scaleY; }
+    function sX(x) {
+        return (x - viewMinX) * scaleX;
+    }
+
+    function sY(y) {
+        return canvas.height - (y - viewMinY) * scaleY;
+    }
 
     ctx.strokeStyle = '#e67e22';
     ctx.lineWidth = 2;
@@ -372,11 +387,13 @@ function drawMap(minX, maxX, minY, maxY) {
         let rx = sX(t.rightp.x);
 
         ctx.beginPath();
-        ctx.moveTo(lx, sY(t.top.evaluate(t.leftp.x))); ctx.lineTo(lx, sY(t.bot.evaluate(t.leftp.x)));
+        ctx.moveTo(lx, sY(t.top.evaluate(t.leftp.x)));
+        ctx.lineTo(lx, sY(t.bot.evaluate(t.leftp.x)));
         ctx.stroke();
 
         ctx.beginPath();
-        ctx.moveTo(rx, sY(t.top.evaluate(t.rightp.x))); ctx.lineTo(rx, sY(t.bot.evaluate(t.rightp.x)));
+        ctx.moveTo(rx, sY(t.top.evaluate(t.rightp.x)));
+        ctx.lineTo(rx, sY(t.bot.evaluate(t.rightp.x)));
         ctx.stroke();
     }
 
@@ -425,7 +442,7 @@ function drawMap(minX, maxX, minY, maxY) {
         ctx.fillText(p.name, sx + 15, sy - 7);
 
         ctx.beginPath();
-        ctx.arc(sx, sy, 3, 0, 2*Math.PI);
+        ctx.arc(sx, sy, 3, 0, 2 * Math.PI);
         ctx.fillStyle = '#fff';
         ctx.fill();
         ctx.stroke();
@@ -503,9 +520,9 @@ function drawSVGLine(n1, n2, svg, container, containerRect) {
     let r1 = el1.getBoundingClientRect();
     let r2 = el2.getBoundingClientRect();
 
-    let x1 = r1.left + r1.width/2 - containerRect.left + container.scrollLeft;
+    let x1 = r1.left + r1.width / 2 - containerRect.left + container.scrollLeft;
     let y1 = r1.bottom - containerRect.top + container.scrollTop;
-    let x2 = r2.left + r2.width/2 - containerRect.left + container.scrollLeft;
+    let x2 = r2.left + r2.width / 2 - containerRect.left + container.scrollLeft;
     let y2 = r2.top - containerRect.top + container.scrollTop;
 
     let line = document.createElementNS('http://www.w3.org/2000/svg', 'line');

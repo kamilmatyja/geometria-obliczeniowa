@@ -39,7 +39,7 @@ function processPolygon() {
     lines.forEach((line, lineIndex) => {
         let parts = line.split(',');
         if (parts.length === 2) {
-            pts.push({ x: parseFloat(parts[0].trim()), y: parseFloat(parts[1].trim()), sourceIndex: lineIndex });
+            pts.push({x: parseFloat(parts[0].trim()), y: parseFloat(parts[1].trim()), sourceIndex: lineIndex});
         }
     });
 
@@ -163,8 +163,8 @@ function processPolygon() {
         let prev = vertices[(i - 1 + N) % N];
         let next = vertices[(i + 1) % N];
 
-        let ei = { start: vi, end: next, name: `e_${vi.id}` };
-        let e_prev = { start: prev, end: vi, name: `e_${prev.id}` };
+        let ei = {start: vi, end: next, name: `e_${vi.id}`};
+        let e_prev = {start: prev, end: vi, name: `e_${prev.id}`};
 
         log.push(`Badamy wierzchołek ${vi.name} - ${vi.type.toLowerCase()} (i = ${vi.id}):`);
 
@@ -173,16 +173,14 @@ function processPolygon() {
             helpers[ei.name] = vi;
             log.push(`  Wstawiono ${ei.name} do T.`);
             log.push(`  Ustawiono pomocnik(${ei.name}) = ${vi.name}`);
-        }
-        else if (vi.type === 'Końcowy') {
+        } else if (vi.type === 'Końcowy') {
             if (helpers[e_prev.name] && helpers[e_prev.name].type === 'Łączący') {
                 diagonals.push([vi, helpers[e_prev.name]]);
                 log.push(`  Wstawiono przekątną łączącą ${vi.name} z pomocnik(e_${prev.id}) = ${helpers[e_prev.name].name}`);
             }
             T = T.filter(e => e.name !== e_prev.name);
             log.push(`  Usunięto ${e_prev.name} z T`);
-        }
-        else if (vi.type === 'Dzielący') {
+        } else if (vi.type === 'Dzielący') {
             let ej = getLeftEdge(vi);
             if (ej) {
                 diagonals.push([vi, helpers[ej.name]]);
@@ -193,8 +191,7 @@ function processPolygon() {
             T.push(ei);
             helpers[ei.name] = vi;
             log.push(`  Wstawiono ${ei.name} do T. Ustawiono pomocnik(${ei.name}) = ${vi.name}`);
-        }
-        else if (vi.type === 'Łączący') {
+        } else if (vi.type === 'Łączący') {
             if (helpers[e_prev.name] && helpers[e_prev.name].type === 'Łączący') {
                 diagonals.push([vi, helpers[e_prev.name]]);
                 log.push(`  Wstawiono przekątną łączącą ${vi.name} z pomocnik(e_${prev.id}) = ${helpers[e_prev.name].name}`);
@@ -211,8 +208,7 @@ function processPolygon() {
                 helpers[ej.name] = vi;
                 log.push(`  Zaktualizowano pomocnik(${ej.name}) = ${vi.name}`);
             }
-        }
-        else if (vi.type === 'Prawidłowy') {
+        } else if (vi.type === 'Prawidłowy') {
             if (vi.interiorRight) { // Wnętrze po prawej
                 log.push(`  Wnętrze P leży na prawo od ${vi.name}`);
                 if (helpers[e_prev.name] && helpers[e_prev.name].type === 'Łączący') {
@@ -251,9 +247,11 @@ function processPolygon() {
 
     // Używamy kluczy nieukierunkowanych, by nie dublować tych samych odcinków
     let existingEdges = new Set();
+
     function edgeKey(a, b) {
         return a.id < b.id ? `${a.id}-${b.id}` : `${b.id}-${a.id}`;
     }
+
     function addTriDiagonal(a, b) {
         if (a.id === b.id) return false;
         let key = edgeKey(a, b);
@@ -517,8 +515,10 @@ function drawCanvas(vertices, diagonals, finalTriDiagonals) {
     for (let i = 0; i < vertices.length; i++) {
         let a = vertices[i];
         let b = vertices[(i + 1) % vertices.length];
-        let ax = getCx(a.x); let ay = getCy(a.y);
-        let bx = getCx(b.x); let by = getCy(b.y);
+        let ax = getCx(a.x);
+        let ay = getCy(a.y);
+        let bx = getCx(b.x);
+        let by = getCy(b.y);
         let midX = (ax + bx) / 2;
         let midY = (ay + by) / 2;
 
@@ -607,4 +607,3 @@ function drawCanvas(vertices, diagonals, finalTriDiagonals) {
 
 window.processPolygon = processPolygon;
 window.addEventListener('DOMContentLoaded', processPolygon);
-

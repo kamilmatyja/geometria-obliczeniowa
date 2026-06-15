@@ -6,4 +6,3 @@ function switchTab(tabId, btn) {
 }
 
 window.switchTab = switchTab;
-

@@ -234,6 +234,7 @@ function processTrapezoidalMap() {
 
     let text = document.getElementById('segmentsInput').value;
     let orderText = document.getElementById('insertionOrder').value;
+    let mathLog = [];
 
     let segmentMap = new Map();
     let uniquePoints = [];
@@ -277,6 +278,13 @@ function processTrapezoidalMap() {
     }
     window.segmentsToInsert = segmentsToInsert;
 
+    mathLog.push('ROZPOCZĘCIE BUDOWY MAPY TRAPEZOWEJ I DAG\n');
+    mathLog.push('Definicje matematyczne:');
+    mathLog.push('1) Orientacja: ccw(a,b,c) = (b.x-a.x)(c.y-a.y) - (b.y-a.y)(c.x-a.x).');
+    mathLog.push('2) Równanie odcinka: y(x) = y1 + (y2-y1) * (x-x1)/(x2-x1).');
+    mathLog.push('3) Węzły DAG: X -> test po współrzędnej x punktu, Y -> test po stronie odcinka, LEAF -> trapez.\n');
+    mathLog.push(`Wejściowa kolejność wstawiania: { ${segmentsToInsert.map(s => s.name).join(', ')} }\n`);
+
     let minX = Math.min(...uniquePoints.map(p => p.x)) - 1;
     let maxX = Math.max(...uniquePoints.map(p => p.x)) + 1;
     let minY = Math.min(...uniquePoints.map(p => p.y)) - 1;
@@ -295,7 +303,15 @@ function processTrapezoidalMap() {
     window.globalRoot = initialTrap.leaf;
     window.allTrapezoids.add(initialTrap);
 
-    for(let s of segmentsToInsert) {
+    mathLog.push('Krok 0: Inicjalizacja bounding box i jednego trapezu początkowego T0.\n');
+
+    for(let i = 0; i < segmentsToInsert.length; i++) {
+        let s = segmentsToInsert[i];
+        let hit = findIntersectingTrapezoids(s);
+        mathLog.push(`Krok ${i + 1}: Wstawiamy ${s.name} = (${s.p.x},${s.p.y}) -> (${s.q.x},${s.q.y}).`);
+        mathLog.push(`  - Liczba przecinanych trapezów: ${hit.length}.`);
+        mathLog.push('  - Dla każdego przecinanego trapezu wykonujemy podział na część górną i dolną (oraz skrajne lewe/prawe fragmenty, jeśli występują).');
+        mathLog.push('  - W DAG podstawiamy lokalnie nowe poddrzewo X/Y zamiast starego liścia.\n');
         insertSegment(s);
     }
 
@@ -311,6 +327,12 @@ function processTrapezoidalMap() {
 
     let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     validTraps.forEach((t, i) => { t.name = letters[i] || ("T" + i); });
+
+    mathLog.push(`Wynik: liczba trapezów końcowych = ${validTraps.length}.`);
+    mathLog.push('Nazwy trapezów po sortowaniu od lewej (i od góry dla tych samych x): ' + validTraps.map(t => t.name).join(', '));
+
+    let logEl = document.getElementById('trapezoidMathLog');
+    if (logEl) logEl.innerText = mathLog.join('\n');
 
     drawMap(minX, maxX, minY, maxY);
     drawDAG();

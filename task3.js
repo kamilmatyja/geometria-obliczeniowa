@@ -346,6 +346,11 @@ function drawVoronoi(points, vertices, edges) {
         if (v.y > maxY) maxY = v.y;
     });
 
+    minX = Math.min(minX, 0);
+    maxX = Math.max(maxX, 0);
+    minY = Math.min(minY, 0);
+    maxY = Math.max(maxY, 0);
+
     const pad = 2;
     minX -= pad;
     maxX += pad;
@@ -362,20 +367,49 @@ function drawVoronoi(points, vertices, edges) {
     const mapX = x => cx + x * scale;
     const mapY = y => cy - y * scale;
 
-    ctx.strokeStyle = '#ecf0f1';
+    const gridMinX = Math.floor(minX);
+    const gridMaxX = Math.ceil(maxX);
+    const gridMinY = Math.floor(minY);
+    const gridMaxY = Math.ceil(maxY);
+
+    ctx.strokeStyle = 'rgba(149, 165, 166, 0.35)';
     ctx.lineWidth = 1;
-    for (let x = Math.floor(minX); x <= Math.ceil(maxX); x++) {
+    for (let x = gridMinX; x <= gridMaxX; x++) {
         ctx.beginPath();
         ctx.moveTo(mapX(x), 0);
         ctx.lineTo(mapX(x), canvas.height);
         ctx.stroke();
     }
-    for (let y = Math.floor(minY); y <= Math.ceil(maxY); y++) {
+    for (let y = gridMinY; y <= gridMaxY; y++) {
         ctx.beginPath();
         ctx.moveTo(0, mapY(y));
         ctx.lineTo(canvas.width, mapY(y));
         ctx.stroke();
     }
+
+    ctx.strokeStyle = 'rgba(44, 62, 80, 0.65)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(mapX(0), 0);
+    ctx.lineTo(mapX(0), canvas.height);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, mapY(0));
+    ctx.lineTo(canvas.width, mapY(0));
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(44, 62, 80, 0.75)';
+    ctx.font = '10px Arial';
+    for (let x = gridMinX; x <= gridMaxX; x++) {
+        if (x === 0) continue;
+        ctx.fillText(String(x), mapX(x) + 2, mapY(0) - 4);
+    }
+    for (let y = gridMinY; y <= gridMaxY; y++) {
+        if (y === 0) continue;
+        ctx.fillText(String(y), mapX(0) + 4, mapY(y) - 2);
+    }
+    ctx.fillText('0', mapX(0) + 4, mapY(0) - 4);
 
     ctx.strokeStyle = '#2980b9';
     ctx.lineWidth = 2;
@@ -402,17 +436,26 @@ function drawVoronoi(points, vertices, edges) {
         ctx.fill();
     });
 
-    ctx.fillStyle = '#2ecc71';
-    ctx.font = 'bold 14px Arial';
+    ctx.font = '16px Arial';
     points.forEach(p => {
         const px = mapX(p.x);
         const py = mapY(p.y);
-        ctx.beginPath();
-        ctx.arc(px, py, 5, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.fillStyle = '#2c3e50';
+
+        // Etykieta jak nazwy trapezów w zadaniu 2 (halo + czarny tekst)
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+        ctx.fillStyle = '#000';
+        ctx.strokeText(p.label, px + 8, py - 8);
         ctx.fillText(p.label, px + 8, py - 8);
-        ctx.fillStyle = '#2ecc71';
+
+        // Marker punktu neutralny jak w zadaniu 2
+        ctx.beginPath();
+        ctx.arc(px, py, 3, 0, 2 * Math.PI);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#95a5a6';
+        ctx.stroke();
     });
 }
 

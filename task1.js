@@ -481,16 +481,64 @@ function drawCanvas(vertices, diagonals, finalTriDiagonals) {
     if (vertices.length === 0) return;
 
     // Przeliczenie układu współrzędnych (skalowanie i centrowanie)
-    let minX = Math.min(...vertices.map(v => v.x));
-    let maxX = Math.max(...vertices.map(v => v.x));
-    let minY = Math.min(...vertices.map(v => v.y));
-    let maxY = Math.max(...vertices.map(v => v.y));
+    let minX = Math.min(...vertices.map(v => v.x), 0);
+    let maxX = Math.max(...vertices.map(v => v.x), 0);
+    let minY = Math.min(...vertices.map(v => v.y), 0);
+    let maxY = Math.max(...vertices.map(v => v.y), 0);
 
     let pad = 40;
     let scale = Math.min((canvas.width - 2 * pad) / (maxX - minX || 1), (canvas.height - 2 * pad) / (maxY - minY || 1));
 
     let getCx = (x) => pad + (x - minX) * scale;
     let getCy = (y) => canvas.height - pad - (y - minY) * scale; // Y odwrócone!
+
+    // Półprzezroczysta siatka + osie kartezjańskie z numeracją.
+    let gridMinX = Math.floor(minX);
+    let gridMaxX = Math.ceil(maxX);
+    let gridMinY = Math.floor(minY);
+    let gridMaxY = Math.ceil(maxY);
+
+    ctx.strokeStyle = 'rgba(149, 165, 166, 0.35)';
+    ctx.lineWidth = 1;
+    for (let x = gridMinX; x <= gridMaxX; x++) {
+        let cx = getCx(x);
+        ctx.beginPath();
+        ctx.moveTo(cx, 0);
+        ctx.lineTo(cx, canvas.height);
+        ctx.stroke();
+    }
+    for (let y = gridMinY; y <= gridMaxY; y++) {
+        let cy = getCy(y);
+        ctx.beginPath();
+        ctx.moveTo(0, cy);
+        ctx.lineTo(canvas.width, cy);
+        ctx.stroke();
+    }
+
+    ctx.strokeStyle = 'rgba(44, 62, 80, 0.65)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(getCx(0), 0);
+    ctx.lineTo(getCx(0), canvas.height);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, getCy(0));
+    ctx.lineTo(canvas.width, getCy(0));
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(44, 62, 80, 0.75)';
+    ctx.font = '10px Arial';
+    for (let x = gridMinX; x <= gridMaxX; x++) {
+        if (x === 0) continue;
+        ctx.fillText(String(x), getCx(x) + 2, getCy(0) - 4);
+    }
+    for (let y = gridMinY; y <= gridMaxY; y++) {
+        if (y === 0) continue;
+        ctx.fillText(String(y), getCx(0) + 4, getCy(y) - 2);
+    }
+
+    ctx.fillText('0', getCx(0) + 4, getCy(0) - 4);
 
     ctx.lineWidth = 2;
     ctx.lineJoin = 'round';
@@ -510,8 +558,8 @@ function drawCanvas(vertices, diagonals, finalTriDiagonals) {
     // Etykiety krawedzi bazowego wielokata: e_i dla odcinka V_i -> V_(i+1)
     let centerX = vertices.reduce((acc, v) => acc + getCx(v.x), 0) / vertices.length;
     let centerY = vertices.reduce((acc, v) => acc + getCy(v.y), 0) / vertices.length;
-    ctx.fillStyle = '#34495e';
-    ctx.font = '11px Arial';
+    ctx.fillStyle = 'rgba(231, 76, 60, 0.65)';
+    ctx.font = 'bold 15px Arial';
     for (let i = 0; i < vertices.length; i++) {
         let a = vertices[i];
         let b = vertices[(i + 1) % vertices.length];
@@ -598,11 +646,27 @@ function drawCanvas(vertices, diagonals, finalTriDiagonals) {
             ctx.fill();
         }
 
-        // Etykiety: numer V_n + litera z kolejnosci wejscia
-        ctx.fillStyle = '#000';
-        ctx.font = '12px Arial';
-        ctx.fillText(`${v.name} (${v.inputLabel})`, cx + 8, cy - 8);
+        // Etykiety: numer V_n + litera z kolejnosci wejscia (styl jak etykiety punktow w zadaniu 2)
+        let pointLabel = `${v.name} (${v.inputLabel})`;
+        ctx.font = '10px Arial';
+        let labelW = Math.max(36, ctx.measureText(pointLabel).width + 10);
+        let labelH = 15;
+        let labelX = cx + 8;
+        let labelY = cy - 17;
+
+        ctx.strokeStyle = '#95a5a6';
+        ctx.fillStyle = '#f8f9fa';
+        ctx.fillRect(labelX, labelY, labelW, labelH);
+        ctx.strokeRect(labelX, labelY, labelW, labelH);
+
+        ctx.fillStyle = '#7f8c8d';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(pointLabel, labelX + labelW / 2, labelY + labelH / 2);
     }
+
+    ctx.textAlign = 'start';
+    ctx.textBaseline = 'alphabetic';
 }
 
 window.processPolygon = processPolygon;

@@ -355,24 +355,72 @@ function drawMap(minX, maxX, minY, maxY) {
     let ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    let margin = (maxX - minX) * 0.1;
-    let scaleX = canvas.width / ((maxX - minX) + 2 * margin);
-    let scaleY = canvas.height / ((maxY - minY) + 2 * margin);
+    let viewMinX = Math.min(minX, 0);
+    let viewMaxX = Math.max(maxX, 0);
+    let viewMinY = Math.min(minY, 0);
+    let viewMaxY = Math.max(maxY, 0);
 
-    let viewMinX = minX - margin;
-    let viewMinY = minY - margin;
+    let pad = 40;
+    let scaleX = (canvas.width - 2 * pad) / Math.max(viewMaxX - viewMinX, 1);
+    let scaleY = (canvas.height - 2 * pad) / Math.max(viewMaxY - viewMinY, 1);
+    let scale = Math.min(scaleX, scaleY);
+
+    let cx = canvas.width / 2 - ((viewMaxX + viewMinX) / 2) * scale;
+    let cy = canvas.height / 2 + ((viewMaxY + viewMinY) / 2) * scale;
 
     function sX(x) {
-        return (x - viewMinX) * scaleX;
+        return cx + x * scale;
     }
 
     function sY(y) {
-        return canvas.height - (y - viewMinY) * scaleY;
+        return cy - y * scale;
     }
 
-    ctx.strokeStyle = '#e67e22';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(sX(minX), sY(maxY), sX(maxX) - sX(minX), sY(minY) - sY(maxY));
+    let gridMinX = Math.floor(viewMinX);
+    let gridMaxX = Math.ceil(viewMaxX);
+    let gridMinY = Math.floor(viewMinY);
+    let gridMaxY = Math.ceil(viewMaxY);
+
+    ctx.strokeStyle = 'rgba(149, 165, 166, 0.35)';
+    ctx.lineWidth = 1;
+    for (let x = gridMinX; x <= gridMaxX; x++) {
+        ctx.beginPath();
+        ctx.moveTo(sX(x), 0);
+        ctx.lineTo(sX(x), canvas.height);
+        ctx.stroke();
+    }
+    for (let y = gridMinY; y <= gridMaxY; y++) {
+        ctx.beginPath();
+        ctx.moveTo(0, sY(y));
+        ctx.lineTo(canvas.width, sY(y));
+        ctx.stroke();
+    }
+
+    ctx.strokeStyle = 'rgba(44, 62, 80, 0.65)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(sX(0), 0);
+    ctx.lineTo(sX(0), canvas.height);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, sY(0));
+    ctx.lineTo(canvas.width, sY(0));
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(44, 62, 80, 0.75)';
+    ctx.font = '10px Arial';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    for (let x = gridMinX; x <= gridMaxX; x++) {
+        if (x === 0) continue;
+        ctx.fillText(String(x), sX(x) + 2, sY(0) - 4);
+    }
+    for (let y = gridMinY; y <= gridMaxY; y++) {
+        if (y === 0) continue;
+        ctx.fillText(String(y), sX(0) + 4, sY(y) - 2);
+    }
+    ctx.fillText('0', sX(0) + 4, sY(0) - 4);
 
     ctx.lineWidth = 1;
     ctx.strokeStyle = '#7f8c8d';
@@ -428,6 +476,11 @@ function drawMap(minX, maxX, minY, maxY) {
         ctx.fillText(t.name, sX(cx), sY(cy));
     }
 
+    // 5) Ramka wewnętrzna obejmująca cały obszar trapezów (jak dawny bbox, ale wewnątrz wykresu)
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#e6b86a';
+    ctx.strokeRect(sX(minX), sY(maxY), sX(maxX) - sX(minX), sY(minY) - sY(maxY));
+
     ctx.lineWidth = 1;
     for (let p of window.uniquePoints) {
         let sx = sX(p.x);
@@ -453,7 +506,8 @@ function drawMap(minX, maxX, minY, maxY) {
 
 function drawDAG() {
     let container = document.getElementById('dagFlowchart');
-    container.innerHTML = '<svg id="dag-svg"></svg>';
+    container.innerHTML = '<div id="dag-content"><svg id="dag-svg"></svg></div>';
+    let content = document.getElementById('dag-content');
 
     let layersMap = {};
 
@@ -490,15 +544,15 @@ function drawDAG() {
             el.innerText = vNode.type === 'LEAF' ? vNode.val.name : vNode.val.name;
             row.appendChild(el);
         }
-        container.appendChild(row);
+        content.appendChild(row);
     }
 
     requestAnimationFrame(() => {
         let svg = document.getElementById('dag-svg');
-        let containerRect = container.getBoundingClientRect();
+        let contentRect = content.getBoundingClientRect();
 
-        svg.setAttribute('width', container.scrollWidth);
-        svg.setAttribute('height', container.scrollHeight);
+        svg.setAttribute('width', content.scrollWidth);
+        svg.setAttribute('height', content.scrollHeight);
 
         let allVisualNodes = [];
         for (let d in layersMap) {
@@ -506,13 +560,21 @@ function drawDAG() {
         }
 
         for (let n of allVisualNodes) {
-            if (n.left) drawSVGLine(n, n.left, svg, container, containerRect);
-            if (n.right) drawSVGLine(n, n.right, svg, container, containerRect);
+            if (n.left) drawSVGLine(n, n.left, svg, content, contentRect);
+            if (n.right) drawSVGLine(n, n.right, svg, content, contentRect);
         }
+
+        // Skalujemy graf do szerokości kontenera zamiast pokazywać poziomy scroll.
+        let availableWidth = Math.max(1, container.clientWidth - 2);
+        let rawWidth = Math.max(1, content.scrollWidth);
+        let scale = Math.min(1, availableWidth / rawWidth);
+
+        content.style.transform = `translateX(-50%) scale(${scale})`;
+        container.style.minHeight = `${Math.max(400, Math.ceil(content.scrollHeight * scale + 40))}px`;
     });
 }
 
-function drawSVGLine(n1, n2, svg, container, containerRect) {
+function drawSVGLine(n1, n2, svg, content, contentRect) {
     let el1 = document.getElementById(n1.id);
     let el2 = document.getElementById(n2.id);
     if (!el1 || !el2) return;
@@ -520,10 +582,10 @@ function drawSVGLine(n1, n2, svg, container, containerRect) {
     let r1 = el1.getBoundingClientRect();
     let r2 = el2.getBoundingClientRect();
 
-    let x1 = r1.left + r1.width / 2 - containerRect.left + container.scrollLeft;
-    let y1 = r1.bottom - containerRect.top + container.scrollTop;
-    let x2 = r2.left + r2.width / 2 - containerRect.left + container.scrollLeft;
-    let y2 = r2.top - containerRect.top + container.scrollTop;
+    let x1 = r1.left + r1.width / 2 - contentRect.left;
+    let y1 = r1.bottom - contentRect.top;
+    let x2 = r2.left + r2.width / 2 - contentRect.left;
+    let y2 = r2.top - contentRect.top;
 
     let line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line.setAttribute('x1', x1);
@@ -534,3 +596,25 @@ function drawSVGLine(n1, n2, svg, container, containerRect) {
     line.setAttribute('stroke-width', '2');
     svg.appendChild(line);
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(processTrapezoidalMap, 200);
+
+    const task2Tab = document.getElementById('task2');
+    if (!task2Tab) return;
+
+    const observer = new MutationObserver(() => {
+        if (task2Tab.classList.contains('active')) {
+            // Gdy zakładka staje się widoczna, przeliczamy ponownie geometrię DAG.
+            setTimeout(processTrapezoidalMap, 0);
+        }
+    });
+
+    observer.observe(task2Tab, {attributes: true, attributeFilter: ['class']});
+
+    window.addEventListener('resize', () => {
+        if (task2Tab.classList.contains('active') && window.globalRoot) {
+            drawDAG();
+        }
+    });
+});

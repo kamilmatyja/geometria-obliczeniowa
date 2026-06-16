@@ -243,18 +243,42 @@ function processTrapezoidalMap() {
     let segmentMap = new Map();
     let uniquePoints = [];
     let allPoints = [];
+    let segmentsListEl = document.getElementById('segmentsList');
+    let orderListEl = document.getElementById('orderList');
 
-    let regex = /([a-zA-Z0-9]+)\s*=\s*\{\s*\(\s*([\d.-]+)\s*,\s*([\d.-]+)\s*\)\s*,\s*\(\s*([\d.-]+)\s*,\s*([\d.-]+)\s*\)\s*\}/g;
-    let match;
+    // Format linii: (x1, y1), (x2, y2)
+    let lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    let lineRegex = /^\(\s*(-?\d*\.?\d+)\s*,\s*(-?\d*\.?\d+)\s*\)\s*,\s*\(\s*(-?\d*\.?\d+)\s*,\s*(-?\d*\.?\d+)\s*\)$/;
+    let invalidSegmentLines = [];
+    let segmentCounter = 0;
 
-    while ((match = regex.exec(text)) !== null) {
-        let name = match[1].toLowerCase();
-        let p1 = new Point(parseFloat(match[2]), parseFloat(match[3]));
-        let p2 = new Point(parseFloat(match[4]), parseFloat(match[5]));
+    lines.forEach((line, idx) => {
+        let match = line.match(lineRegex);
+        if (!match) {
+            invalidSegmentLines.push(idx + 1);
+            return;
+        }
+
+        let p1 = new Point(parseFloat(match[1]), parseFloat(match[2]));
+        let p2 = new Point(parseFloat(match[3]), parseFloat(match[4]));
+        segmentCounter += 1;
+        let name = `s_${segmentCounter}`;
 
         let s = new Segment(p1, p2, name);
         segmentMap.set(s.name, s);
         allPoints.push(p1, p2);
+    });
+
+    if (invalidSegmentLines.length > 0 || segmentMap.size === 0) {
+        if (segmentsListEl) {
+            segmentsListEl.innerText = 'Brak poprawnych odcinków wejściowych.';
+        }
+        if (orderListEl) {
+            orderListEl.innerText = 'Porządek: { }';
+        }
+        document.getElementById('trapezoidMathLog').innerText =
+            'Błędny format danych wejściowych. Użyj formatu linii: (x_1, y_1), (x_2, y_2).';
+        return;
     }
 
     // Przypisanie nazw punktom z zachowaniem kolejności wejścia (odwzorowuje P1, P2 z PDF)
@@ -273,13 +297,54 @@ function processTrapezoidalMap() {
         s.q = uniquePoints.find(up => up.equals(s.q));
     }
 
-    let orderKeys = orderText.split(',').map(s => s.trim().toLowerCase());
-    orderKeys = orderKeys.map(k => isNaN(k) ? k : 's' + k);
+    let orderKeys = orderText
+        .split(',')
+        .map(s => s.trim().toLowerCase())
+        .filter(s => s.length > 0)
+        .map(k => k.replace(/\s+/g, ''))
+        .filter(k => /^\d+$/.test(k))
+        .map(k => `s_${k}`);
+
+    // Gdy pole jest puste, przyjmij domyślną kolejność rosnącą.
+    if (orderKeys.length === 0) {
+        orderKeys = Array.from(segmentMap.keys());
+    }
 
     let segmentsToInsert = [];
+    let seenOrder = new Set();
     for (let k of orderKeys) {
-        if (segmentMap.has(k)) segmentsToInsert.push(segmentMap.get(k));
+        if (!segmentMap.has(k) || seenOrder.has(k)) continue;
+        seenOrder.add(k);
+        segmentsToInsert.push(segmentMap.get(k));
     }
+
+    if (segmentsToInsert.length === 0) {
+        if (segmentsListEl) {
+            let segmentLines = Array.from(segmentMap.values()).map(s => {
+                let id = s.name.split('_')[1];
+                return `S_${id} = {(${s.p.x}, ${s.p.y}), (${s.q.x}, ${s.q.y})}`;
+            });
+            segmentsListEl.innerText = segmentLines.join('\n');
+        }
+        if (orderListEl) {
+            orderListEl.innerText = 'Porządek: { }';
+        }
+        document.getElementById('trapezoidMathLog').innerText =
+            'Brak odcinków do wstawienia dla podanego porządku.';
+        return;
+    }
+
+    if (segmentsListEl) {
+        let segmentLines = Array.from(segmentMap.values()).map(s => {
+            let id = s.name.split('_')[1];
+            return `S_${id} = {(${s.p.x}, ${s.p.y}), (${s.q.x}, ${s.q.y})}`;
+        });
+        segmentsListEl.innerText = segmentLines.join('\n');
+    }
+    if (orderListEl) {
+        orderListEl.innerText = `Porządek: {${segmentsToInsert.map(s => s.name).join(', ')}}`;
+    }
+
     window.segmentsToInsert = segmentsToInsert;
 
     mathLog.push('ROZPOCZĘCIE BUDOWY MAPY TRAPEZOWEJ I DAG\n');

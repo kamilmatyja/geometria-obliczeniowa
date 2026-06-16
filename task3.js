@@ -159,6 +159,13 @@ function processVoronoi() {
     const input = document.getElementById('voronoiInput').value;
     const points = parseVoronoiInput(input);
     const logEl = document.getElementById('voronoiLog');
+    const inputListEl = document.getElementById('voronoiInputList');
+
+    if (inputListEl) {
+        inputListEl.innerText = points
+            .map(p => `${p.label} = (${p.x}, ${p.y})`)
+            .join('\n');
+    }
 
     if (points.length < 3) {
         logEl.innerHTML = "Wymagane są minimum 3 punkty, aby poprawnie wygenerować diagram.";
@@ -166,7 +173,6 @@ function processVoronoi() {
     }
 
     let logHtml = "ROZPOCZYNAM OBLICZENIA DIAGRAMU VORONOI:\n";
-    points.forEach(p => logHtml += `Centrum ${p.label} = (${p.x}, ${p.y})\n`);
     logHtml += "\n----------------------------------------------------\n";
     logHtml += "KROK 1. WYZNACZANIE RÓWNAŃ SYMETRALNYCH\n";
     logHtml += "----------------------------------------------------\n";
@@ -236,7 +242,7 @@ function processVoronoi() {
                     // Skoro to prawidłowy wierzchołek Voronoi, wypisujemy go do logu:
                     logHtml += `--- Sprawdzanie Trójki: ${A.label}, ${B.label}, ${C.label} ---\n`;
                     logHtml += intersectData.log;
-                    logHtml += `Okrąg o środku w wierzchołku i promieniu R=${r.toFixed(3)} jest PUSTY.\nZATWIERDZONO WIERZCHOŁEK!\n\n`;
+                    logHtml += `Okrąg o środku w wierzchołku i promieniu R=${r.toFixed(3)} jest PUSTY.\n\n`;
                 }
             }
         }

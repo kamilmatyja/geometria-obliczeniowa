@@ -37,8 +37,9 @@ function formatEq(A, B, C) {
 }
 
 function prettyNum(n) {
+    if (Math.abs(n) < 1e-10) return "0";
     if (Number.isInteger(n)) return String(n);
-    return n.toFixed(3);
+    return n.toFixed(3).replace(/\.?0+$/, '');
 }
 
 // Wyznacza symetralną dla dwóch punktów i generuje kroki w logu
@@ -79,9 +80,11 @@ function computeBisectorMath(A, B) {
 
     const eqStr = formatEq(A_gen, B_gen, C_gen);
     const label = `${A.label}${B.label}`;
+    let drawP1 = null;
+    let drawP2 = null;
 
     let log = `\n[Symetralna ${label}]\n`;
-    log += `Odcinek: ${A.label}(${A.x}, ${A.y}), ${B.label}(${B.x}, ${B.y})\n`;
+    log += `Odcinek: ${A.label}(${prettyNum(A.x)}, ${prettyNum(A.y)}), ${B.label}(${prettyNum(B.x)}, ${prettyNum(B.y)})\n`;
     log += `Podstawienie do wzoru prostej ${label}: (y - ${prettyNum(A.y)})(${prettyNum(B.x - A.x)}) - (${prettyNum(B.y - A.y)})(x - ${prettyNum(A.x)}) = 0\n`;
     log += `Prosta ${label} (postać ogólna): ${formatEq(Lx, Ly, Lc)}\n`;
     if (dx !== 0) {
@@ -93,25 +96,55 @@ function computeBisectorMath(A, B) {
         log += `Prosta ${label} jest pionowa: x = ${prettyNum(A.x)}\n`;
     }
 
-    log += `Srodek S = ((${prettyNum(A.x)}+${prettyNum(B.x)})/2, (${prettyNum(A.y)}+${prettyNum(B.y)})/2) = (${mx.toFixed(2)}, ${my.toFixed(2)})\n`;
-    log += `Wektor kierunkowy prostej ${label}: [${dx.toFixed(2)}, ${dy.toFixed(2)}]\n`;
+    log += `Srodek S = ((${prettyNum(A.x)}+${prettyNum(B.x)})/2, (${prettyNum(A.y)}+${prettyNum(B.y)})/2) = (${prettyNum(mx)}, ${prettyNum(my)})\n`;
+    log += `Wektor kierunkowy prostej ${label}: [${prettyNum(dx)}, ${prettyNum(dy)}]\n`;
 
     if (dy === 0) {
+        const y1 = my - 1;
+        const y2 = my + 1;
+        drawP1 = {x: mx, y: y1};
+        drawP2 = {x: mx, y: y2};
         log += `Symetralna prostopadla do poziomej ${label} jest pionowa: x = ${prettyNum(mx)}\n`;
+        log += `Punkty do rysowania (ta sama wartosc x): P1=(${prettyNum(mx)}, ${prettyNum(y1)}), P2=(${prettyNum(mx)}, ${prettyNum(y2)})\n`;
     } else if (dx === 0) {
+        const x1 = mx - 1;
+        const x2 = mx + 1;
+        drawP1 = {x: x1, y: my};
+        drawP2 = {x: x2, y: my};
         log += `Symetralna prostopadla do pionowej ${label} jest pozioma: y = ${prettyNum(my)}\n`;
+        log += `Punkty do rysowania (ta sama wartosc y): P1=(${prettyNum(x1)}, ${prettyNum(my)}), P2=(${prettyNum(x2)}, ${prettyNum(my)})\n`;
     } else {
         const mPerp = -dx / dy;
         const bPerp = my - mPerp * mx;
+        const x1 = mx - 1;
+        const x2 = mx + 1;
+        const y1 = mPerp * x1 + bPerp;
+        const y2 = mPerp * x2 + bPerp;
+        drawP1 = {x: x1, y: y1};
+        drawP2 = {x: x2, y: y2};
         log += `m_p = -1/m_${label} = ${prettyNum(mPerp)}\n`;
         log += `b = y_S - m_p*x_S = ${prettyNum(my)} - (${prettyNum(mPerp)})*(${prettyNum(mx)}) = ${prettyNum(bPerp)}\n`;
         log += `Symetralna (postać kierunkowa): y = ${prettyNum(mPerp)}x ${bPerp >= 0 ? '+' : '-'} ${prettyNum(Math.abs(bPerp))}\n`;
+        log += `Wybieramy x1 = ${prettyNum(x1)}, x2 = ${prettyNum(x2)}\n`;
+        log += `y1 = m_p*x1 + b = (${prettyNum(mPerp)})*(${prettyNum(x1)}) ${bPerp >= 0 ? '+' : '-'} ${prettyNum(Math.abs(bPerp))} = ${prettyNum(y1)}\n`;
+        log += `y2 = m_p*x2 + b = (${prettyNum(mPerp)})*(${prettyNum(x2)}) ${bPerp >= 0 ? '+' : '-'} ${prettyNum(Math.abs(bPerp))} = ${prettyNum(y2)}\n`;
+        log += `Punkty do rysowania: P1=(${prettyNum(x1)}, ${prettyNum(y1)}), P2=(${prettyNum(x2)}, ${prettyNum(y2)})\n`;
     }
 
     log += `Symetralna ${label} w postaci ogólnej:\n`;
     log += `=> ${eqStr}\n`;
 
-    return {A: A_gen, B: B_gen, C: C_gen, str: eqStr, log: log, label: label};
+    return {
+        A: A_gen,
+        B: B_gen,
+        C: C_gen,
+        str: eqStr,
+        log: log,
+        label: label,
+        mid: {x: mx, y: my},
+        drawP1,
+        drawP2
+    };
 }
 
 // Oblicza punkt przecięcia z użyciem wyznaczników Cramera i loguje obliczenia
@@ -128,27 +161,27 @@ function intersectCramerMath(eq1, eq2) {
     log += `{ ${formatEq(A1, B1, -C1)}\n`;
     log += `{ ${formatEq(A2, B2, -C2)}\n`;
     log += `Rozdzielamy wyraz wolny na prawą stronę:\n`;
-    log += `{ ${A1}x ${B1 >= 0 ? '+' : '-'} ${Math.abs(B1)}y = ${C1}\n`;
-    log += `{ ${A2}x ${B2 >= 0 ? '+' : '-'} ${Math.abs(B2)}y = ${C2}\n`;
+    log += `{ ${prettyNum(A1)}x ${B1 >= 0 ? '+' : '-'} ${prettyNum(Math.abs(B1))}y = ${prettyNum(C1)}\n`;
+    log += `{ ${prettyNum(A2)}x ${B2 >= 0 ? '+' : '-'} ${prettyNum(Math.abs(B2))}y = ${prettyNum(C2)}\n`;
 
     if (W === 0) {
         log += `Wyznacznik W = 0. Proste są równoległe (brak przecięcia).\n`;
         return {valid: false, log: log};
     }
 
-    log += `W  = | ${A1}  ${B1} | = (${A1})*(${B2}) - (${A2})*(${B1}) = ${W}\n`;
-    log += `     | ${A2}  ${B2} |\n`;
-    log += `Wx = | ${C1}  ${B1} | = (${C1})*(${B2}) - (${C2})*(${B1}) = ${Wx}\n`;
-    log += `     | ${C2}  ${B2} |\n`;
-    log += `Wy = | ${A1}  ${C1} | = (${A1})*(${C2}) - (${A2})*(${C1}) = ${Wy}\n`;
-    log += `     | ${A2}  ${C2} |\n`;
+    log += `W  = | ${prettyNum(A1)}  ${prettyNum(B1)} | = (${prettyNum(A1)})*(${prettyNum(B2)}) - (${prettyNum(A2)})*(${prettyNum(B1)}) = ${prettyNum(W)}\n`;
+    log += `     | ${prettyNum(A2)}  ${prettyNum(B2)} |\n`;
+    log += `Wx = | ${prettyNum(C1)}  ${prettyNum(B1)} | = (${prettyNum(C1)})*(${prettyNum(B2)}) - (${prettyNum(C2)})*(${prettyNum(B1)}) = ${prettyNum(Wx)}\n`;
+    log += `     | ${prettyNum(C2)}  ${prettyNum(B2)} |\n`;
+    log += `Wy = | ${prettyNum(A1)}  ${prettyNum(C1)} | = (${prettyNum(A1)})*(${prettyNum(C2)}) - (${prettyNum(A2)})*(${prettyNum(C1)}) = ${prettyNum(Wy)}\n`;
+    log += `     | ${prettyNum(A2)}  ${prettyNum(C2)} |\n`;
 
     const x = Wx / W;
     const y = Wy / W;
 
-    log += `\nx = Wx / W = ${Wx} / ${W} = ${Number.isInteger(x) ? x : x.toFixed(3)}\n`;
-    log += `y = Wy / W = ${Wy} / ${W} = ${Number.isInteger(y) ? y : y.toFixed(3)}\n`;
-    log += `==> Punkt Wierzchołka: (${x.toFixed(3)}, ${y.toFixed(3)})\n`;
+    log += `\nx = Wx / W = ${prettyNum(Wx)} / ${prettyNum(W)} = ${prettyNum(x)}\n`;
+    log += `y = Wy / W = ${prettyNum(Wy)} / ${prettyNum(W)} = ${prettyNum(y)}\n`;
+    log += `==> Punkt Wierzchołka: (${prettyNum(x)}, ${prettyNum(y)})\n`;
 
     return {valid: true, x: x, y: y, log: log};
 }
@@ -173,31 +206,23 @@ function processVoronoi() {
     }
 
     let logHtml = "ROZPOCZYNAM OBLICZENIA DIAGRAMU VORONOI:\n";
-    logHtml += "\n----------------------------------------------------\n";
-    logHtml += "KROK 1. WYZNACZANIE RÓWNAŃ SYMETRALNYCH\n";
-    logHtml += "----------------------------------------------------\n";
-    logHtml += "WZORY OGÓLNE (stosowane dla każdej pary punktów):\n";
-    logHtml += "1) Prosta przez dwa punkty: (y - y1)(x2 - x1) - (y2 - y1)(x - x1) = 0\n";
-    logHtml += "2) Nachylenie: m = (y2 - y1)/(x2 - x1)\n";
-    logHtml += "3) Środek odcinka: S = ((x1+x2)/2, (y1+y2)/2)\n";
-    logHtml += "4) Nachylenie symetralnej: m_p = -1/m (dla niepionowej i niepoziomej)\n";
-    logHtml += "5) Postać kierunkowa: y = m_p*x + b, gdzie b = y_S - m_p*x_S\n";
-    logHtml += "6) Postać ogólna: Ax + By + C = 0\n\n";
+    logHtml += "\nKROK 1. WYZNACZANIE RÓWNAŃ SYMETRALNYCH\n";
 
     // 1. Wyliczanie symetralnych wszystkich par i generowanie logów
     const bisectors = {};
+    const bisectorDrawData = [];
+    let bisectorCounter = 1;
     for (let i = 0; i < points.length; i++) {
         for (let j = i + 1; j < points.length; j++) {
             const mathData = computeBisectorMath(points[i], points[j]);
+            mathData.drawName = `s_${bisectorCounter++}`;
             bisectors[mathData.label] = mathData;
+            bisectorDrawData.push(mathData);
             logHtml += mathData.log;
         }
     }
 
-    logHtml += "\n----------------------------------------------------\n";
-    logHtml += "KROK 2. SZUKANIE WIERZCHOŁKÓW (PRZECIĘCIA SYMETRALNYCH)\n";
-    logHtml += "----------------------------------------------------\n";
-    logHtml += "Wierzchołek Voronoi to środek pustego okręgu opisanego na trzech centrach.\n\n";
+    logHtml += "\nKROK 2. SZUKANIE WIERZCHOŁKÓW (PRZECIĘCIA SYMETRALNYCH)\n";
 
     // 2. Wyszukiwanie pustych okręgów opisanych dla każdej trójki
     const vertices = [];
@@ -231,18 +256,19 @@ function processVoronoi() {
                 }
 
                 if (isEmpty) {
+                    const vertexName = `p_${[A.label, B.label, C.label].join('').toLowerCase()}`;
                     const v = {
                         x: vx,
                         y: vy,
                         sites: [A, B, C],
-                        id: `V${vertices.length + 1}`
+                        id: `V${vertices.length + 1}`,
+                        name: vertexName
                     };
                     vertices.push(v);
 
                     // Skoro to prawidłowy wierzchołek Voronoi, wypisujemy go do logu:
-                    logHtml += `--- Sprawdzanie Trójki: ${A.label}, ${B.label}, ${C.label} ---\n`;
+                    logHtml += `\nSprawdzanie Trójki: ${A.label}, ${B.label}, ${C.label}\n`;
                     logHtml += intersectData.log;
-                    logHtml += `Okrąg o środku w wierzchołku i promieniu R=${r.toFixed(3)} jest PUSTY.\n\n`;
                 }
             }
         }
@@ -283,7 +309,7 @@ function processVoronoi() {
     }
 
     logEl.innerHTML = logHtml;
-    drawVoronoi(points, vertices, edges);
+    drawVoronoi(points, vertices, edges, bisectorDrawData);
 }
 
 function parseVoronoiInput(input) {
@@ -332,7 +358,7 @@ function calculateRay(V, A, B) {
     return {dx: dx / len, dy: dy / len};
 }
 
-function drawVoronoi(points, vertices, edges) {
+function drawVoronoi(points, vertices, edges, bisectors) {
     const canvas = document.getElementById('voronoiCanvas');
     const ctx = canvas.getContext('2d');
 
@@ -417,6 +443,86 @@ function drawVoronoi(points, vertices, edges) {
     }
     ctx.fillText('0', mapX(0) + 4, mapY(0) - 4);
 
+    // Podgląd symetralnych na podstawie dwóch punktów P1/P2
+    const worldDiag = Math.max(maxX - minX, maxY - minY);
+    const extendLen = worldDiag * 2;
+    ctx.strokeStyle = 'rgba(41, 128, 185, 0.18)';
+    ctx.lineWidth = 1.2;
+    bisectors.forEach(b => {
+        if (!b.drawP1 || !b.drawP2) return;
+        const vx = b.drawP2.x - b.drawP1.x;
+        const vy = b.drawP2.y - b.drawP1.y;
+        const len = Math.hypot(vx, vy) || 1;
+        const ux = vx / len;
+        const uy = vy / len;
+        const sx = b.mid.x - ux * extendLen;
+        const sy = b.mid.y - uy * extendLen;
+        const ex = b.mid.x + ux * extendLen;
+        const ey = b.mid.y + uy * extendLen;
+
+        ctx.beginPath();
+        ctx.moveTo(mapX(sx), mapY(sy));
+        ctx.lineTo(mapX(ex), mapY(ey));
+        ctx.stroke();
+    });
+
+    // Białe punkty pomocnicze P1/P2 dla symetralnych
+    bisectors.forEach(b => {
+        if (!b.drawP1 || !b.drawP2) return;
+        [b.drawP1, b.drawP2].forEach(p => {
+            ctx.beginPath();
+            ctx.arc(mapX(p.x), mapY(p.y), 2.2, 0, 2 * Math.PI);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+            ctx.fill();
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = 'rgba(149, 165, 166, 0.45)';
+            ctx.stroke();
+        });
+    });
+
+    // Nazwy symetralnych (s_1, s_2, ...)
+    ctx.font = '14px Arial';
+    ctx.fillStyle = 'rgba(231, 76, 60, 0.65)';
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    const radialOffset = Math.max(worldDiag * 0.09, 1.4);
+    bisectors.forEach((b, idx) => {
+        let dirX = b.mid.x - centerX;
+        let dirY = b.mid.y - centerY;
+        let dirLen = Math.hypot(dirX, dirY);
+
+        // Gdy etykieta wypada blisko środka, użyjemy prostopadłego wektora do symetralnej.
+        if (dirLen < 1e-6 && b.drawP1 && b.drawP2) {
+            const vx = b.drawP2.x - b.drawP1.x;
+            const vy = b.drawP2.y - b.drawP1.y;
+            dirX = -vy;
+            dirY = vx;
+            if (idx % 2 === 1) {
+                dirX = -dirX;
+                dirY = -dirY;
+            }
+            dirLen = Math.hypot(dirX, dirY);
+        }
+
+        if (dirLen < 1e-6) {
+            dirX = 1;
+            dirY = 0;
+            dirLen = 1;
+        }
+
+        const ux = dirX / dirLen;
+        const uy = dirY / dirLen;
+        const tangentJitter = ((idx % 3) - 1) * Math.max(worldDiag * 0.02, 0.35);
+        const tx = -uy;
+        const ty = ux;
+        const labelX = b.mid.x + ux * radialOffset + tx * tangentJitter;
+        const labelY = b.mid.y + uy * radialOffset + ty * tangentJitter;
+
+        const lx = mapX(labelX) + 6;
+        const ly = mapY(labelY) - 6;
+        ctx.fillText(b.drawName, lx, ly);
+    });
+
     ctx.strokeStyle = '#2980b9';
     ctx.lineWidth = 2;
     edges.forEach(edge => {
@@ -442,6 +548,13 @@ function drawVoronoi(points, vertices, edges) {
         ctx.fill();
     });
 
+    // Etykiety wierzchołków przecięcia symetralnych (p_abc, p_bcd, ...)
+    ctx.font = '13px Arial';
+    ctx.fillStyle = '#c0392b';
+    vertices.forEach(v => {
+        ctx.fillText(v.name, mapX(v.x) + 8, mapY(v.y) - 8);
+    });
+
     ctx.font = '16px Arial';
     points.forEach(p => {
         const px = mapX(p.x);
@@ -454,13 +567,13 @@ function drawVoronoi(points, vertices, edges) {
         ctx.strokeText(p.label, px + 8, py - 8);
         ctx.fillText(p.label, px + 8, py - 8);
 
-        // Marker punktu neutralny jak w zadaniu 2
+        // Marker centrów zgodny z legendą (zielony)
         ctx.beginPath();
         ctx.arc(px, py, 3, 0, 2 * Math.PI);
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = '#2ecc71';
         ctx.fill();
         ctx.lineWidth = 1;
-        ctx.strokeStyle = '#95a5a6';
+        ctx.strokeStyle = '#27ae60';
         ctx.stroke();
     });
 }
